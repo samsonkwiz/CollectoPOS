@@ -87,7 +87,11 @@ CREATE TABLE categories (
     id INT AUTO_INCREMENT PRIMARY KEY,
     company_id INT NOT NULL,
     category_name VARCHAR(50) NOT NULL,
-    FOREIGN KEY (company_id) REFERENCES companies(id)
+    category_photo VARCHAR(255) DEFAULT 'assets/img/categories/default.png',
+    updated_at_unix BIGINT(20),
+    sync_status TINYINT(1) DEFAULT 0, 
+    is_deleted TINYINT(1) DEFAULT 0,
+    INDEX (company_id), INDEX (sync_status)
 ) ENGINE=InnoDB;
 
 CREATE TABLE inventory (
@@ -96,31 +100,49 @@ CREATE TABLE inventory (
     branch_id INT NOT NULL,
     category_id INT,
     sku VARCHAR(50),
-    product_photo VARCHAR(255) DEFAULT 'assets/img/product-placeholder.png',
+    product_photo VARCHAR(255) DEFAULT 'assets/img/products/default.png',
     product_name VARCHAR(150) NOT NULL,
     product_type ENUM('STOCKABLE', 'SERVICE') DEFAULT 'STOCKABLE',
     buying_price DECIMAL(15, 2) DEFAULT 0.00, 
     selling_price DECIMAL(15, 2) NOT NULL,
     stock_qty INT DEFAULT 0,
     min_stock_level INT DEFAULT 5,
+    is_active TINYINT(1) DEFAULT 1,
+    is_deleted TINYINT(1) DEFAULT 0,
+    sync_status TINYINT(1) DEFAULT 0,
     updated_at_unix BIGINT(20),
-    FOREIGN KEY (company_id) REFERENCES companies(id),
-    FOREIGN KEY (branch_id) REFERENCES branches(id),
-    FOREIGN KEY (category_id) REFERENCES categories(id)
+    INDEX (company_id), INDEX (branch_id), INDEX (sync_status)
+) ENGINE=InnoDB;
+
+CREATE TABLE inventory_audits (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    company_id INT NOT NULL,
+    branch_id INT NOT NULL,
+    product_id INT NOT NULL,
+    action_type VARCHAR(50), 
+    qty_before INT,
+    qty_after INT,
+    change_reason TEXT,
+    created_at_unix BIGINT(20)
 ) ENGINE=InnoDB;
 
 -- Pricing: Special prices for specific days (Friday Specials)
 CREATE TABLE price_rules (
     id INT AUTO_INCREMENT PRIMARY KEY,
     inventory_id INT NOT NULL,
+    company_id INT NOT NULL, -- Added for multi-tenancy sync
     branch_id INT NOT NULL, 
     day_of_week ENUM('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'All'),
     special_price DECIMAL(15, 2),
     start_time TIME DEFAULT '00:00:00',
     end_time TIME DEFAULT '23:59:59',
     is_active TINYINT(1) DEFAULT 1,
-    FOREIGN KEY (inventory_id) REFERENCES inventory(id) ON DELETE CASCADE,
-    FOREIGN KEY (branch_id) REFERENCES branches(id)
+    -- Sync Metadata
+    updated_at_unix BIGINT(20),
+    sync_status TINYINT(1) DEFAULT 0,
+    INDEX (inventory_id),
+    INDEX (branch_id),
+    INDEX (sync_status)
 ) ENGINE=InnoDB;
 
 -- Audit: Tracks who changed a price and why
