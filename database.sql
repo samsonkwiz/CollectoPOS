@@ -161,59 +161,89 @@ CREATE TABLE price_change_audit (
 -- 4. SUPPLY CHAIN (IN: Purchases, OUT: Returns)
 -- ==========================================================
 
+-- 1. Suppliers
 CREATE TABLE suppliers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     company_id INT NOT NULL,
-    supplier_name VARCHAR(100) NOT NULL,
-    contact_phone VARCHAR(20),
+    supplier_name VARCHAR(255) NOT NULL,
+    contact_person VARCHAR(100),
+    phone VARCHAR(20),
     email VARCHAR(100),
-    FOREIGN KEY (company_id) REFERENCES companies(id)
-) ENGINE=InnoDB;
+    total_balance DECIMAL(15,2) DEFAULT 0.00,
+    is_deleted TINYINT DEFAULT 0,
+    sync_status TINYINT DEFAULT 0,
+    updated_at_unix BIGINT
+);
 
-CREATE TABLE purchases (
+-- 2. Purchase Invoices (Master)
+CREATE TABLE purchase_invoices (
     id INT AUTO_INCREMENT PRIMARY KEY,
     company_id INT NOT NULL,
     branch_id INT NOT NULL,
-    supplier_id INT,
-    total_cost DECIMAL(15, 2),
-    status ENUM('PENDING', 'RECEIVED', 'CANCELLED') DEFAULT 'RECEIVED',
-    created_at_unix BIGINT(20),
-    FOREIGN KEY (company_id) REFERENCES companies(id),
-    FOREIGN KEY (branch_id) REFERENCES branches(id),
-    FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
-) ENGINE=InnoDB;
+    manager_id INT NOT NULL,
+    supplier_id INT NOT NULL,
+    invoice_no VARCHAR(50),
+    total_amount DECIMAL(15,2),
+    paid_amount DECIMAL(15,2),
+    due_amount DECIMAL(15,2),
+    payment_status ENUM('PAID', 'PARTIAL', 'DUE') DEFAULT 'DUE',
+    attachment_path VARCHAR(255),
+    notes TEXT,
+    created_at_unix BIGINT,
+    sync_status TINYINT DEFAULT 0
+);
 
-CREATE TABLE purchase_items (
+-- 3. Purchase Items (Details)
+CREATE TABLE purchase_invoice_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    purchase_id INT,
-    product_id INT,
-    qty_received INT,
-    unit_cost DECIMAL(15, 2),
-    FOREIGN KEY (purchase_id) REFERENCES purchases(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES inventory(id)
-) ENGINE=InnoDB;
+    purchase_id INT NOT NULL,
+    product_id INT NOT NULL,
+    qty INT NOT NULL,
+    buying_price DECIMAL(15,2) NOT NULL
+);
 
-CREATE TABLE returns (
+-- 4. Supplier Payments
+CREATE TABLE supplier_payments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    company_id INT NOT NULL,
+    manager_id INT NOT NULL,
+    supplier_id INT NOT NULL,
+    amount DECIMAL(15,2),
+    payment_method VARCHAR(50),
+    reference VARCHAR(100),
+    receipt_path VARCHAR(255),
+    created_at_unix BIGINT,
+    sync_status TINYINT DEFAULT 0
+);
+
+-- 5. Returns
+CREATE TABLE purchase_returns (
     id INT AUTO_INCREMENT PRIMARY KEY,
     company_id INT NOT NULL,
     branch_id INT NOT NULL,
-    supplier_id INT,
-    agent_id INT,
-    total_refund_amount DECIMAL(15, 2),
+    manager_id INT NOT NULL,
+    supplier_id INT NOT NULL,
+    total_refunded_amount DECIMAL(15,2) DEFAULT 0.00,
+    attachment_path VARCHAR(255),
     reason TEXT,
-    created_at_unix BIGINT(20),
-    FOREIGN KEY (company_id) REFERENCES companies(id),
-    FOREIGN KEY (branch_id) REFERENCES branches(id)
-) ENGINE=InnoDB;
+    created_at_unix BIGINT,
+    sync_status TINYINT DEFAULT 0
+);
 
-CREATE TABLE return_items (
+-- 6. Damages
+CREATE TABLE inventory_damages (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    return_id INT,
-    product_id INT,
-    qty INT,
-    unit_cost DECIMAL(15, 2),
-    FOREIGN KEY (return_id) REFERENCES returns(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
+    company_id INT NOT NULL,
+    branch_id INT NOT NULL,
+    manager_id INT NOT NULL,
+    product_id INT NOT NULL,
+    qty INT NOT NULL,
+    reason ENUM('EXPIRED', 'BROKEN', 'LOST', 'OTHER'),
+    notes TEXT,
+    attachment_path VARCHAR(255),
+    created_at_unix BIGINT,
+    sync_status TINYINT DEFAULT 0
+);
 
 -- ==========================================================
 -- 5. CRM & MARKETING
