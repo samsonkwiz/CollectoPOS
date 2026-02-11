@@ -96,6 +96,7 @@ CREATE TABLE inventory (
     branch_id INT NOT NULL,
     category_id INT,
     sku VARCHAR(50),
+    product_photo VARCHAR(255) DEFAULT 'assets/img/product-placeholder.png',
     product_name VARCHAR(150) NOT NULL,
     product_type ENUM('STOCKABLE', 'SERVICE') DEFAULT 'STOCKABLE',
     buying_price DECIMAL(15, 2) DEFAULT 0.00, 
@@ -404,5 +405,18 @@ SELECT
      )) AS net_profit
 FROM sales s
 GROUP BY s.company_id, s.branch_id, report_date;
+
+
+CREATE TABLE target_configs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    company_id INT NOT NULL,
+    branch_id INT NOT NULL,
+    rev_target_val DECIMAL(15, 2) DEFAULT 1000000, -- e.g. 1M UGX
+    cust_target_val INT DEFAULT 50,               -- Your '50' from JS
+    rev_weight_pct INT DEFAULT 60,                -- e.g. 60%
+    cust_weight_pct INT DEFAULT 40,               -- e.g. 40%
+    updated_at_unix BIGINT(20),
+    FOREIGN KEY (branch_id) REFERENCES branches(id)
+) ENGINE=InnoDB;
 
 COMMIT;
